@@ -34,10 +34,29 @@ impl fmt::Display for Piece {
             super::piece::PieceType::QUEEN => "Q",
             super::piece::PieceType::KING => "K",
         };
-        let color = match self.color {
-            super::piece::PieceColor::WHITE => "w",
-            super::piece::PieceColor::BLACK => "b",
+        let fen:String = match self.color {
+            super::piece::PieceColor::WHITE => piece.to_uppercase(),
+            super::piece::PieceColor::BLACK => piece.to_lowercase(),
         };
-        write!(f, "{}{}", color, piece)
+        write!(f, "{}", fen)
     }
+}
+
+impl Piece {
+    pub fn new(color: PieceColor, piece_type: PieceType) -> Piece {
+        Piece {
+            color: color,
+            piece_type: piece_type,
+        }
+    }
+    // pub fn moves(&self, base: super::board::Position) -> Vec<super::board::Position> {
+    //     match self.piece_type {
+    //         PieceType::PAWN => pawn_moves(base, self.color),
+    //         PieceType::KNIGHT => knight_moves(base),
+    //         PieceType::BISHOP => bishop_moves(base),
+    //         PieceType::ROOK => rook_moves(base),
+    //         PieceType::QUEEN => queen_moves(base),
+    //         PieceType::KING => king_moves(base),
+    //     }
+    // }
 }

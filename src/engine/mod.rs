@@ -1,8 +1,10 @@
 use std::fmt;
 use self::board::Board;
 
+
 pub mod piece;
 pub mod board;
+pub mod moves;
 
 #[derive(Copy, Clone, Debug)]
 pub struct Move {

@@ -1,7 +1,17 @@
-pub type Position = u8;
 use std::fmt;
 
 use super::piece::{Piece, PieceColor, PieceType};
+pub type Position = u8;
+
+pub fn decode_pos(position: Position) -> (u8, u8) {
+    let rank = position / 8;
+    let file = position % 8;
+    (rank, file)
+}
+pub fn encode_pos(rank: u8, file: u8) -> Position {
+    (rank * 8 + file) as Position
+}
+
 #[derive(Debug)]
 pub struct Board {
     pub squares: [Option<Piece>; 64],
@@ -24,16 +34,24 @@ impl Board {
 impl fmt::Display for Board {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut board_string = String::new();
+        let files="   a b c d e f g h\n";
+        board_string.push_str(files);
+        let divider="-".repeat(20)+"\n";
+        board_string.push_str(divider.as_str());
+
         for rank in 0..8 {
+            board_string.push_str(&format!("{}| ", 8 - rank));
             for file in 0..8 {
                 let piece = self.get_piece(rank * 8 + file);
                 match piece {
                     Some(p) => board_string.push_str(&format!("{} ", p)),
-                    None => board_string.push_str(".. "),
+                    None => board_string.push_str("* "),
                 }
             }
             board_string.push_str("\n");
         }
+        board_string.push_str(divider.as_str());
+        board_string.push_str(files);
         write!(f, "{}", board_string)
     }
 }
