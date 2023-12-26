@@ -3,10 +3,10 @@ use std::fmt;
 use super::piece::{Piece, PieceColor, PieceType};
 pub type Position = u8;
 
-pub fn decode_pos(position: Position) -> (u8, u8) {
+pub fn decode_pos(position: Position) -> (i8, i8) {
     let rank = position / 8;
     let file = position % 8;
-    (rank, file)
+    (rank as i8, file as i8)
 }
 pub fn encode_pos(rank: u8, file: u8) -> Position {
     (rank * 8 + file) as Position

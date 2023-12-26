@@ -14,7 +14,7 @@ macro_rules! in_bounds {
     };
 }
 
-pub fn slant_moves(base: Position) -> Vec<Position> {
+pub fn slant_moves_raw(base: Position) -> Vec<Position> {
     let mut moves: Vec<Position> = Vec::new();
     let (r, f) = decode_pos(base);
     let mut dir = 0;
@@ -38,13 +38,14 @@ pub fn slant_moves(base: Position) -> Vec<Position> {
     moves
 }
 
-pub fn rect_moves(base: Position) -> Vec<Position> {
+pub fn rect_moves_raw(base: Position) -> Vec<Position> {
     let mut moves: Vec<Position> = Vec::new();
     let (r, f) = decode_pos(base);
-    let mut dir = 0;
+    let coeffs=[(1,0),(0,1),(-1,0),(0,-1)];
+    let mut dir:usize = 0;
     while dir <= 3 {
-        let coeff_1 = nth_bit!(dir, 0) as i16 * 2 - 1;
-        let coeff_2 = nth_bit!(dir, 1) as i16 * 2 - 1;
+        let coeff_1 = coeffs[dir].0;
+        let coeff_2 = coeffs[dir].1;
         let mut i = 1;
         loop {
             let newx: i16 = r as i16 + i * coeff_1;
@@ -60,5 +61,77 @@ pub fn rect_moves(base: Position) -> Vec<Position> {
         dir += 1;
     }
 
+    moves
+}
+
+pub fn knight_moves_raw(base: Position) -> Vec<Position> {
+    let mut moves: Vec<Position> = Vec::new();
+    let (r, f) = decode_pos(base);
+    let coeffs=[(1,2),(2,1),(2,-1),(1,-2),(-1,-2),(-2,-1),(-2,1),(-1,2)];
+    let mut dir:usize = 0;
+    while dir <= 7 {
+        let coeff_1 = coeffs[dir].0;
+        let coeff_2 = coeffs[dir].1;
+        let newx: i16 = r as i16 + coeff_1;
+        let newy: i16 = f as i16 + coeff_2;
+        if in_bounds!(newx, newy) {
+            let m = encode_pos(newx as u8, newy as u8);
+            moves.push(m);
+        }
+        dir += 1;
+    }
+
+    moves
+}
+
+pub fn king_moves_raw(base: Position) -> Vec<Position> {
+    let mut moves: Vec<Position> = Vec::new();
+    let (r, f) = decode_pos(base);
+    let coeffs=[(1,0),(0,1),(-1,0),(0,-1),(1,1),(-1,-1),(-1,1),(1,-1)];
+    let mut dir:usize = 0;
+    while dir <= 7 {
+        let coeff_1 = coeffs[dir].0;
+        let coeff_2 = coeffs[dir].1;
+        let newx: i16 = r as i16 + coeff_1;
+        let newy: i16 = f as i16 + coeff_2;
+        if in_bounds!(newx, newy) {
+            let m = encode_pos(newx as u8, newy as u8);
+            moves.push(m);
+        }
+        dir += 1;
+    }
+
+    moves
+}
+
+pub fn pawn_moves_raw(base: Position, color: i8) -> Vec<Position> {
+    let mut moves: Vec<Position> = Vec::new();
+    let (r, f) = decode_pos(base);
+    let coeff:i16 = (color * 2 - 1) as i16;
+    let newr: i16 = r as i16 + coeff as i16;
+    let newf: i16 = f as i16;
+
+    for element in [(newr+coeff,newf),(newr+coeff,newf+1),(newr+coeff,newf-1),(newr+coeff*2,newf)]{
+        let rr: i16 = element.0;
+        let ff: i16 = element.1;
+        if in_bounds!(rr, ff) {
+            let m = encode_pos(rr as u8, ff as u8);
+            moves.push(m);
+        }
+    }
+
+    moves
+}
+
+pub fn rook_moves_raw(base: Position) -> Vec<Position> {
+    rect_moves_raw(base)
+}
+pub fn bishop_moves_raw(base: Position) -> Vec<Position> {
+    slant_moves_raw(base)
+}
+pub fn queen_moves_raw(base: Position) -> Vec<Position> {
+    let mut moves: Vec<Position> = Vec::new();
+    moves.append(&mut slant_moves_raw(base));
+    moves.append(&mut rect_moves_raw(base));
     moves
 }

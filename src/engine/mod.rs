@@ -1,16 +1,15 @@
-use std::fmt;
 use self::board::Board;
+use std::fmt;
 
-
-pub mod piece;
 pub mod board;
 pub mod moves;
+pub mod piece;
+pub mod weights;
 
 #[derive(Copy, Clone, Debug)]
 pub struct Move {
     from: u8,
     to: u8,
-
 }
 
 impl fmt::Display for Move {
@@ -19,12 +18,7 @@ impl fmt::Display for Move {
     }
 }
 
-
-
 pub fn best_move(board: Board) -> Move {
-    Move {
-        from: 0,
-        to: 0,
-    }
+    Move { from: 0, to: 0 }
 }
 
