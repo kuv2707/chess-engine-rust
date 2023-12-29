@@ -1,12 +1,11 @@
 use std::fmt;
 
-
 #[derive(Copy, Clone, Debug)]
 pub struct Piece {
     pub color: PieceColor,
     pub piece_type: PieceType,
 }
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub enum PieceType {
     PAWN,
     KNIGHT,
@@ -15,14 +14,27 @@ pub enum PieceType {
     QUEEN,
     KING,
 }
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub enum PieceColor {
     WHITE,
     BLACK,
 }
-
-
-
+impl PieceColor {
+    pub fn opponent_color(&self) -> PieceColor {
+        match self {
+            PieceColor::WHITE => PieceColor::BLACK,
+            PieceColor::BLACK => PieceColor::WHITE,
+        }
+    }
+}
+impl fmt::Display for PieceColor {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            PieceColor::WHITE => write!(f, "WHITE_COLOR"),
+            PieceColor::BLACK => write!(f, "BLACK_COLOR"),
+        }
+    }
+}
 
 impl fmt::Display for Piece {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -34,7 +46,7 @@ impl fmt::Display for Piece {
             super::piece::PieceType::QUEEN => "Q",
             super::piece::PieceType::KING => "K",
         };
-        let fen:String = match self.color {
+        let fen: String = match self.color {
             super::piece::PieceColor::WHITE => piece.to_uppercase(),
             super::piece::PieceColor::BLACK => piece.to_lowercase(),
         };
@@ -48,6 +60,9 @@ impl Piece {
             color: color,
             piece_type: piece_type,
         }
+    }
+    pub fn get_color(&self) -> PieceColor {
+        self.color
     }
     // pub fn moves(&self, base: super::board::Position) -> Vec<super::board::Position> {
     //     match self.piece_type {

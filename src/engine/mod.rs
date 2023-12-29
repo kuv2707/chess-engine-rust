@@ -1,24 +1,30 @@
-use self::board::Board;
 use std::fmt;
+
+use self::board::{Board, Position};
 
 pub mod board;
 pub mod moves;
 pub mod piece;
 pub mod weights;
 
-#[derive(Copy, Clone, Debug)]
-pub struct Move {
-    from: u8,
-    to: u8,
+
+pub type Move= u16;
+
+
+/*
+@returns a tuple of (from,to)    
+ */
+pub fn decode_move(m: &Move) -> (Position, Position) {
+    let from = (m >> 6) as u8;
+    let to = (m & 0b111111) as u8;
+    (from, to)
+}
+pub fn encode_move(from: Position, to: Position) -> Move {
+    ((from as u16) << 6) | (to as u16)
 }
 
-impl fmt::Display for Move {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}{}", self.from, self.to)
-    }
-}
 
 pub fn best_move(board: Board) -> Move {
-    Move { from: 0, to: 0 }
+    0
 }
 

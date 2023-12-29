@@ -1,9 +1,14 @@
 use std::fmt;
 
-use super::piece::{Piece, PieceColor, PieceType};
+use super::{
+    decode_move,
+    moves::{all_possible_raw_moves, all_possible_valid_moves},
+    piece::{Piece, PieceColor, PieceType},
+    Move,
+};
 pub type Position = u8;
 
-pub fn decode_pos(position: Position) -> (i8, i8) {
+pub fn decode_pos(position: &Position) -> (i8, i8) {
     let rank = position / 8;
     let file = position % 8;
     (rank as i8, file as i8)
@@ -12,14 +17,14 @@ pub fn encode_pos(rank: u8, file: u8) -> Position {
     (rank * 8 + file) as Position
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct Board {
     pub squares: [Option<Piece>; 64],
     pub side_to_move: PieceColor,
     pub castling_rights: u8,
     pub en_passant_square: Option<Position>,
-    pub halfmove_clock: u8,
-    pub fullmove_number: u8,
+    pub halfmove_clock: u8,  //ignoring this for now
+    pub fullmove_number: u8, //ignoring this for now
 }
 
 impl Board {
@@ -29,14 +34,103 @@ impl Board {
     pub fn set_piece(&mut self, square: u8, piece: Option<Piece>) {
         self.squares[square as usize] = piece;
     }
+    pub fn snapshot_extra_state(&self) -> (u8, Option<Position>) {
+        (self.castling_rights, self.en_passant_square)
+    }
+    pub fn restore_extra_state(&mut self, state: (u8, Option<Position>)) {
+        self.castling_rights = state.0;
+        self.en_passant_square = state.1;
+    }
+    pub fn make_move(&mut self, m: Move) {
+        let (from, to) = decode_move(&m);
+        let piece = self.get_piece(from);
+        if piece.is_none() {
+            panic!("No piece at source square for move: {:?}", decode_move(&m));
+        }
+        self.set_piece(to, piece);
+        self.set_piece(from, None);
+        self.side_to_move = self.side_to_move.opponent_color();
+        self.evaluate_extra_state(from, to, piece.unwrap());
+    }
+    pub fn unmake_move(&mut self, m: Move) {
+        let (from, to) = decode_move(&m);
+        let piece = self.get_piece(to);
+        if piece.is_none() {
+            panic!(
+                "No piece at destination square for move: {:?}",
+                decode_move(&m)
+            );
+        }
+        self.set_piece(from, piece);
+        self.set_piece(to, None);
+        self.side_to_move = self.side_to_move.opponent_color();
+    }
+    pub fn evaluate_extra_state(
+        &mut self,
+        from: Position,
+        to: Position,
+        piece: Piece,
+    ) -> (u8, Option<Position>) {
+        //castling rights
+        //en passant square
+        (0, None) //todo:implement castling and enpassant, currently ignoring
+    }
+    pub fn has_check(&self) -> bool {
+        //board MUST have both kings
+        let col = self.side_to_move;
+        let ki = self.squares.iter().position(|&x| {
+            x.is_some() && x.unwrap().color == col.opponent_color() && x.unwrap().piece_type == PieceType::KING
+        });
+        if ki.is_none() {
+            return true;
+        }
+        let king_ind = ki.unwrap() as Position;
+        println!("King index: {:?}", decode_pos(&king_ind));
+        let valid_moves = all_possible_raw_moves(self);
+        print_destinations(&valid_moves);
+        for m in valid_moves {
+            if decode_move(&m).1 == king_ind {
+                return true;
+            }
+        }
+        return false;
+    }
+    pub fn plot(&self, positions: Vec<Position>) {
+        println!(
+            "Plotting positions: {:?}",
+            positions.iter().map(|m| decode_pos(&m)).collect::<Vec<_>>()
+        );
+        let mut board_string = String::new();
+        let files = "   a b c d e f g h\n";
+        board_string.push_str(files);
+        for rank in 0..8 {
+            board_string.push_str(&format!("{}| ", 8 - rank));
+            for file in 0..8 {
+                // let piece = self.get_piece(rank * 8 + file);
+                // match piece {
+                //     Some(p) => board_string.push_str(&format!("{} ", p)),
+                //     None => board_string.push_str("  "),
+                // }
+                if positions.contains(&(rank * 8 + file)) {
+                    board_string.push_str("* ");
+                } else {
+                    board_string.push_str("  ");
+                }
+            }
+            board_string.push_str("\n");
+        }
+        board_string.push_str(files);
+
+        println!("{}", board_string);
+    }
 }
 
 impl fmt::Display for Board {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut board_string = String::new();
-        let files="   a b c d e f g h\n";
+        let files = "   a b c d e f g h\n";
         board_string.push_str(files);
-        let divider="-".repeat(20)+"\n";
+        let divider = "-".repeat(20) + "\n";
         board_string.push_str(divider.as_str());
 
         for rank in 0..8 {
@@ -172,4 +266,12 @@ pub fn populate_pieces(board: &mut Board, piece_placement: &str) {
         }
         rank += 1;
     }
+}
+
+
+pub fn print_destinations(moves: &Vec<Move>) {
+    println!(
+        "Possible moves: {:?}",
+        moves.iter().map(|m| decode_move(&m).1).map(|n| decode_pos(&n)).collect::<Vec<_>>()
+    );
 }
