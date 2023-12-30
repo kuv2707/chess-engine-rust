@@ -14,15 +14,15 @@ mod engine;
 fn main() {
     //load env
     dotenv::dotenv().ok();
-    let mut board = engine::board::create_board("rnbkqbnr/8/8/8/8/8/8/RNBQKBNR w");
+    let mut board = engine::board::create_board("rnbq1bnr/ppp1pppp/8/2kp4/5P2/8/PPPPPBPP/RN1QKBNR b");
     println!("{}", board);
-    println!("{}",board.has_check());
-    board.side_to_move = board.side_to_move.opponent_color();
-    // board.plot(
-    //     all_possible_raw_moves(&board)
-    //         .iter()
-    //         .map(|m| decode_move(&m).1)
-    //         .collect::<Vec<_>>(),
-    // );
-    // board.plot(bishop_moves_raw(encode_pos(0, 2), &board));
+    // println!("{:?}",board.has_check(&board.side_to_move));
+    // board.side_to_move = board.side_to_move.opponent_color();
+    board.plot(
+        all_possible_valid_moves(&board)
+            .iter()
+            .map(|m| decode_move(&m).1)
+            .collect::<Vec<_>>(),
+    );
+    // board.plot(pawn_moves_raw(encode_pos(6, 3), &board));
 }

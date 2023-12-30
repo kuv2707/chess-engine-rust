@@ -75,25 +75,35 @@ impl Board {
         //en passant square
         (0, None) //todo:implement castling and enpassant, currently ignoring
     }
-    pub fn has_check(&self) -> bool {
+    pub fn has_check(&self, col: &PieceColor) -> bool {
         //board MUST have both kings
-        let col = self.side_to_move;
-        let ki = self.squares.iter().position(|&x| {
-            x.is_some() && x.unwrap().color == col.opponent_color() && x.unwrap().piece_type == PieceType::KING
+
+        let k_option = self.squares.iter().position(|&x| {
+            x.is_some() && x.unwrap().color == *col && x.unwrap().piece_type == PieceType::KING
         });
-        if ki.is_none() {
-            return true;
+        if k_option.is_none() {
+            panic!("King of color {:?} not found on board", col);
         }
-        let king_ind = ki.unwrap() as Position;
-        println!("King index: {:?}", decode_pos(&king_ind));
+        let k = k_option.unwrap() as Position;
+
+        // println!("K: {:?}, k: {:?}", decode_pos(&K), decode_pos(&k));
+
         let valid_moves = all_possible_raw_moves(self);
-        print_destinations(&valid_moves);
+        // print_destinations(&valid_moves);
         for m in valid_moves {
-            if decode_move(&m).1 == king_ind {
+            if decode_move(&m).1 == k {
                 return true;
             }
         }
         return false;
+    }
+    pub fn evaluate(&self) -> f64 {
+        //evaluation criteria:
+        // location of pieces on board
+        // danger to king
+        // danger to other pieces === potential to capture other pieces
+
+        0.0
     }
     pub fn plot(&self, positions: Vec<Position>) {
         println!(
@@ -268,10 +278,13 @@ pub fn populate_pieces(board: &mut Board, piece_placement: &str) {
     }
 }
 
-
 pub fn print_destinations(moves: &Vec<Move>) {
     println!(
         "Possible moves: {:?}",
-        moves.iter().map(|m| decode_move(&m).1).map(|n| decode_pos(&n)).collect::<Vec<_>>()
+        moves
+            .iter()
+            .map(|m| decode_move(&m).1)
+            .map(|n| decode_pos(&n))
+            .collect::<Vec<_>>()
     );
 }

@@ -1,5 +1,3 @@
-use crate::engine::decode_move;
-
 use super::{
     board::{decode_pos, encode_pos, Board, Position},
     encode_move,
@@ -194,10 +192,10 @@ pub fn pawn_moves_raw(base: Position, board: &Board) -> Vec<Position> {
         }
     }
     let coeffs = [(1, 1), (1, -1)];
-    for cof in coeffs{
+    for cof in coeffs {
         let coeff_1 = cof.0;
         let coeff_2 = cof.1;
-        let newx: i16 = r as i16 + coeff_1*coeff;
+        let newx: i16 = r as i16 + coeff_1 * coeff;
         let newy: i16 = f as i16 + coeff_2;
         if in_bounds!(newx, newy) {
             let m = encode_pos(newx as u8, newy as u8);
@@ -206,8 +204,6 @@ pub fn pawn_moves_raw(base: Position, board: &Board) -> Vec<Position> {
             }
         }
     }
-
-    
 
     moves
 }
@@ -243,7 +239,7 @@ pub fn filter_out_check_moves(mut board: Board, raw_moves: Vec<Move>) -> Vec<Mov
     for m in raw_moves {
         let s = board.snapshot_extra_state();
         board.make_move(m);
-        if !board.has_check() {
+        if !board.has_check(&stm) {
             valid_moves.push(m);
         }
         board.unmake_move(m);
@@ -263,7 +259,7 @@ pub fn all_possible_raw_moves(board: &Board) -> Vec<Move> {
     for square in board.squares {
         if let Some(piece) = square {
             if piece.color == board.side_to_move {
-                let mut rm=get_raw_moves(&piece, &count, &board);
+                let mut rm = get_raw_moves(&piece, &count, &board);
                 // println!("{:?} {:?}",piece.piece_type ,rm.iter().map(|m| decode_move(&m).1).map(|n| decode_pos(&n)).collect::<Vec<_>>());
                 raw_moves.append(&mut rm);
             }
