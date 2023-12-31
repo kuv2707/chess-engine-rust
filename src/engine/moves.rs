@@ -233,17 +233,15 @@ pub fn get_raw_moves(p: &Piece, pos: &Position, board: &Board) -> Vec<Move> {
     srcvec.iter().map(|dest| encode_move(*pos, *dest)).collect()
 }
 
-pub fn filter_out_check_moves(mut board: Board, raw_moves: Vec<Move>) -> Vec<Move> {
+pub fn filter_out_check_moves(board: &mut Board, raw_moves: Vec<Move>) -> Vec<Move> {
     let stm = board.side_to_move;
     let mut valid_moves: Vec<Move> = Vec::new();
     for m in raw_moves {
-        let s = board.snapshot_extra_state();
-        board.make_move(m);
+        let ctx = board.make_move(m);
         if !board.has_check(&stm) {
             valid_moves.push(m);
         }
-        board.unmake_move(m);
-        board.restore_extra_state(s);
+        board.unmake_move(ctx);
     }
     valid_moves
 }
@@ -269,6 +267,6 @@ pub fn all_possible_raw_moves(board: &Board) -> Vec<Move> {
     raw_moves
 }
 
-pub fn all_possible_valid_moves(board: &Board) -> Vec<Move> {
-    filter_out_check_moves(*board, all_possible_raw_moves(board))
+pub fn all_possible_valid_moves(board: &mut Board) -> Vec<Move> {
+    filter_out_check_moves(board, all_possible_raw_moves(board))
 }

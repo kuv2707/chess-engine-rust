@@ -1,3 +1,5 @@
+use crate::engine::board::pos_as_string;
+
 use self::board::Position;
 
 pub mod board;
@@ -21,4 +23,7 @@ pub fn encode_move(from: Position, to: Position) -> Move {
     ((from as u16) << 6) | (to as u16)
 }
 
-
+pub fn move_as_string(m: &Move) -> String {
+    let (from, to) = decode_move(m);
+    format!("{}{}", pos_as_string(&from), pos_as_string(&to))
+}

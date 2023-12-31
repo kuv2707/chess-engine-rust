@@ -1,5 +1,7 @@
 use std::fmt;
 
+use crate::engine::move_as_string;
+
 use super::{
     decode_move,
     moves::{all_possible_raw_moves, all_possible_valid_moves},
@@ -18,6 +20,11 @@ pub fn encode_pos(rank: u8, file: u8) -> Position {
     (rank * 8 + file) as Position
 }
 
+pub fn pos_as_string(pos: &Position) -> String {
+    let (r, f) = decode_pos(&pos);
+    format!("{}{}", (f + 'a' as i8) as u8 as char, (7-r + '1' as i8) as u8 as char)
+}
+
 #[derive(Debug, Clone, Copy)]
 pub struct Board {
     pub squares: [Option<Piece>; 64],
@@ -28,6 +35,12 @@ pub struct Board {
     pub fullmove_number: u8, //ignoring this for now
 }
 
+pub struct MoveContext {
+    chessmove: Move,
+    killed_piece: Option<Piece>,
+    //todo: add castling rights and en passant square
+}
+
 impl Board {
     pub fn get_piece(&self, square: u8) -> Option<Piece> {
         self.squares[square as usize]
@@ -35,46 +48,34 @@ impl Board {
     pub fn set_piece(&mut self, square: u8, piece: Option<Piece>) {
         self.squares[square as usize] = piece;
     }
-    pub fn snapshot_extra_state(&self) -> (u8, Option<Position>) {
-        (self.castling_rights, self.en_passant_square)
-    }
-    pub fn restore_extra_state(&mut self, state: (u8, Option<Position>)) {
-        self.castling_rights = state.0;
-        self.en_passant_square = state.1;
-    }
-    pub fn make_move(&mut self, m: Move) {
+    pub fn make_move(&mut self, m: Move) -> MoveContext {
+
         let (from, to) = decode_move(&m);
+        let dead = self.get_piece(to);
         let piece = self.get_piece(from);
         if piece.is_none() {
-            panic!("No piece at source square for move: {:?}", decode_move(&m));
+            panic!("No piece at source square for move: {}", move_as_string(&m));
         }
         self.set_piece(to, piece);
         self.set_piece(from, None);
         self.side_to_move = self.side_to_move.opponent_color();
-        self.evaluate_extra_state(from, to, piece.unwrap());
+        MoveContext {
+            chessmove: m,
+            killed_piece: dead,
+        }
     }
-    pub fn unmake_move(&mut self, m: Move) {
-        let (from, to) = decode_move(&m);
+    pub fn unmake_move(&mut self, m: MoveContext) {
+        let (from, to) = decode_move(&m.chessmove);
         let piece = self.get_piece(to);
         if piece.is_none() {
             panic!(
-                "No piece at destination square for move: {:?}",
-                decode_move(&m)
+                "No piece at destination square for move: {}",
+                move_as_string(&m.chessmove)
             );
         }
         self.set_piece(from, piece);
-        self.set_piece(to, None);
+        self.set_piece(to, m.killed_piece);
         self.side_to_move = self.side_to_move.opponent_color();
-    }
-    pub fn evaluate_extra_state(
-        &mut self,
-        from: Position,
-        to: Position,
-        piece: Piece,
-    ) -> (u8, Option<Position>) {
-        //castling rights
-        //en passant square
-        (0, None) //todo:implement castling and enpassant, currently ignoring
     }
     // this function checks whether the current side to move has any moves which coincide with the king of the color `col`
     pub fn has_check(&self, col: &PieceColor) -> bool {
@@ -99,7 +100,52 @@ impl Board {
         }
         return false;
     }
-    pub fn evaluate(&self) -> f32 {
+    pub fn best_move(&mut self, depth: u8) -> Move {
+        let (eval, mov) = self.minimax(depth);
+        println!("best move: {:?} with eval: {}", mov, eval);
+        mov.unwrap()
+    }
+    fn minimax(&mut self, depth: u8) -> (f32, Option<Move>) {
+        let v_moves = all_possible_valid_moves(self);
+        if depth == 0 || v_moves.len() == 0 {
+            // println!("evaluating board: {}",self);
+            return (self.evaluate(),None);
+        }
+        // print_moves(&v_moves);
+        // println!("{}\n ** {:?}",self, self.get_piece(encode_pos(2, 3)));
+        let mut best_move = None;
+        let ret_eval:f32;
+        if self.side_to_move == PieceColor::WHITE {
+            let mut max_eval = f32::NEG_INFINITY;
+            for m in v_moves {
+
+                let ctx=self.make_move(m);
+                let (eval,_) = self.minimax(depth - 1);
+                if eval > max_eval {
+                    max_eval = eval;
+                    best_move = Some(m);
+                }
+                self.unmake_move(ctx);
+            }
+            ret_eval = max_eval;
+        }
+        else{
+            let mut min_eval = f32::INFINITY;
+            for m in v_moves {
+                let ctx=self.make_move(m);
+                let (eval,_) = self.minimax(depth - 1);
+                if eval < min_eval {
+                    min_eval = eval;
+                    best_move = Some(m);
+                }
+                self.unmake_move(ctx);
+            }
+            ret_eval = min_eval;
+        }
+        
+        (ret_eval,best_move)
+    }
+    pub fn evaluate(&mut self) -> f32 {
         //evaluation criteria:
         // location of pieces on board
         // danger to king
@@ -112,11 +158,11 @@ impl Board {
                 let s= (get_positional_weight(pos, p) + get_piece_weight(p))
                     * piece.unwrap().get_color().get_value() as f32;
                 score += s;
-                println!("{}", s);
+                // println!("{}", s);
             }
             pos += 1;
         }
-        for mv in all_possible_valid_moves(self).iter() {
+        for mv in all_possible_valid_moves( self).iter() {
             let tentative_piece = self.get_piece(decode_move(&mv).1);
             if tentative_piece.is_some() {
                 score -= get_piece_weight(&tentative_piece.unwrap())
@@ -128,7 +174,7 @@ impl Board {
     pub fn plot(&self, positions: Vec<Position>) {
         println!(
             "Plotting positions: {:?}",
-            positions.iter().map(|m| decode_pos(&m)).collect::<Vec<_>>()
+            positions.iter().map(|m| pos_as_string(&m)).collect::<Vec<_>>()
         );
         let mut board_string = String::new();
         let files = "   a b c d e f g h\n";
@@ -298,13 +344,18 @@ pub fn populate_pieces(board: &mut Board, piece_placement: &str) {
     }
 }
 
-pub fn print_destinations(moves: &Vec<Move>) {
+pub fn print_moves(moves: &Vec<Move>) {
     println!(
         "Possible moves: {:?}",
         moves
             .iter()
-            .map(|m| decode_move(&m).1)
-            .map(|n| decode_pos(&n))
+            .map(|m| move_as_string(&m))
             .collect::<Vec<_>>()
+    );
+}
+pub fn print_positions(positions: &Vec<Position>) {
+    println!(
+        "Possible positions: {:?}",
+        positions.iter().map(|n| pos_as_string(&n)).collect::<Vec<_>>()
     );
 }
