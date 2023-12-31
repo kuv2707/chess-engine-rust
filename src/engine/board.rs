@@ -4,6 +4,7 @@ use super::{
     decode_move,
     moves::{all_possible_raw_moves, all_possible_valid_moves},
     piece::{Piece, PieceColor, PieceType},
+    weights::{get_piece_weight, get_positional_weight},
     Move,
 };
 pub type Position = u8;
@@ -75,6 +76,7 @@ impl Board {
         //en passant square
         (0, None) //todo:implement castling and enpassant, currently ignoring
     }
+    // this function checks whether the current side to move has any moves which coincide with the king of the color `col`
     pub fn has_check(&self, col: &PieceColor) -> bool {
         //board MUST have both kings
 
@@ -86,9 +88,9 @@ impl Board {
         }
         let k = k_option.unwrap() as Position;
 
-        // println!("K: {:?}, k: {:?}", decode_pos(&K), decode_pos(&k));
+        // println!("King position: {:?}", decode_pos(&k));
 
-        let valid_moves = all_possible_raw_moves(self);
+        let valid_moves = all_possible_raw_moves(self); //even moves which lead to the mover's side getting a check are valid if the mover can capture the king, but this should never happen
         // print_destinations(&valid_moves);
         for m in valid_moves {
             if decode_move(&m).1 == k {
@@ -97,13 +99,31 @@ impl Board {
         }
         return false;
     }
-    pub fn evaluate(&self) -> f64 {
+    pub fn evaluate(&self) -> f32 {
         //evaluation criteria:
         // location of pieces on board
         // danger to king
-        // danger to other pieces === potential to capture other pieces
-
-        0.0
+        // danger to other pieces === potential to capture other pieces: but weightage given should be lesser than the weightage given to the piece itself
+        let mut score = 0.0;
+        let mut pos = 0;
+        for piece in self.squares.iter() {
+            if piece.is_some() {
+                let p = &piece.unwrap();
+                let s= (get_positional_weight(pos, p) + get_piece_weight(p))
+                    * piece.unwrap().get_color().get_value() as f32;
+                score += s;
+                println!("{}", s);
+            }
+            pos += 1;
+        }
+        for mv in all_possible_valid_moves(self).iter() {
+            let tentative_piece = self.get_piece(decode_move(&mv).1);
+            if tentative_piece.is_some() {
+                score -= get_piece_weight(&tentative_piece.unwrap())
+                    * tentative_piece.unwrap().get_color().get_value() as f32;
+            }
+        }
+        score
     }
     pub fn plot(&self, positions: Vec<Position>) {
         println!(

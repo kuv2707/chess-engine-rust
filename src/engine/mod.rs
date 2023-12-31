@@ -1,6 +1,4 @@
-use std::fmt;
-
-use self::board::{Board, Position};
+use self::board::Position;
 
 pub mod board;
 pub mod moves;
@@ -23,8 +21,4 @@ pub fn encode_move(from: Position, to: Position) -> Move {
     ((from as u16) << 6) | (to as u16)
 }
 
-
-pub fn best_move(board: Board) -> Move {
-    0
-}
 

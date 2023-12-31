@@ -26,6 +26,12 @@ impl PieceColor {
             PieceColor::BLACK => PieceColor::WHITE,
         }
     }
+    pub fn get_value(&self) -> i32 {
+        match self {
+            PieceColor::WHITE => 1,
+            PieceColor::BLACK => -1,
+        }
+    }
 }
 impl fmt::Display for PieceColor {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -55,12 +61,12 @@ impl fmt::Display for Piece {
 }
 
 impl Piece {
-    pub fn new(color: PieceColor, piece_type: PieceType) -> Piece {
-        Piece {
-            color: color,
-            piece_type: piece_type,
-        }
-    }
+    // pub fn new(color: PieceColor, piece_type: PieceType) -> Piece {
+    //     Piece {
+    //         color: color,
+    //         piece_type: piece_type,
+    //     }
+    // }
     pub fn get_color(&self) -> PieceColor {
         self.color
     }
