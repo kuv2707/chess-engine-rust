@@ -105,11 +105,15 @@ impl Board {
     }
     pub fn best_move(&mut self, depth: u8) -> (f32, Move) {
         let now = std::time::Instant::now();
-        let (eval, mov) = self.minimax(depth, f32::NEG_INFINITY, f32::INFINITY);
+        let mut nodes_scanned = 0;
+        let (eval, mov) = self.minimax(depth, f32::NEG_INFINITY, f32::INFINITY, &mut nodes_scanned);
         println!("time taken: {:?}", now.elapsed().as_secs_f32());
+        println!("nodes scanned: {}", nodes_scanned);
         (eval, mov.unwrap())
     }
-    fn minimax(&mut self, depth: u8, mut alpha: f32, mut beta: f32) -> (f32, Option<Move>) {
+    fn minimax(&mut self, depth: u8, mut alpha: f32, mut beta: f32, nodes_scanned: &mut i32) -> (f32, Option<Move>) {
+        *nodes_scanned += 1;
+        // println!("{}", nodes_scanned);
         let v_moves = all_possible_valid_moves(self);
         if depth == 0 || v_moves.len() == 0 {
             // println!("evaluating board: {}",self);
@@ -123,7 +127,7 @@ impl Board {
             let mut max_eval = f32::NEG_INFINITY;
             for m in v_moves {
                 let ctx = self.make_move(m);
-                let (eval, _) = self.minimax(depth - 1, alpha, beta);
+                let (eval, _) = self.minimax(depth - 1, alpha, beta, nodes_scanned);
                 if eval > max_eval {
                     max_eval = eval;
                     best_move = Some(m);
@@ -139,7 +143,7 @@ impl Board {
             let mut min_eval = f32::INFINITY;
             for m in v_moves {
                 let ctx = self.make_move(m);
-                let (eval, _) = self.minimax(depth - 1, alpha, beta);
+                let (eval, _) = self.minimax(depth - 1, alpha, beta, nodes_scanned);
                 if eval < min_eval {
                     min_eval = eval;
                     best_move = Some(m);
