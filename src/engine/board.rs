@@ -1,10 +1,10 @@
-use std::fmt;
+use std::{fmt, collections::HashMap};
 
 use crate::engine::move_as_string;
 
 use super::{
     decode_move,
-    moves::{all_possible_raw_moves, all_possible_valid_moves},
+    moves::{all_possible_raw_moves, all_possible_valid_moves, find_in_raw_move_targets},
     piece::{Piece, PieceColor, PieceType},
     weights::{get_piece_weight, get_positional_weight},
     Move,
@@ -29,9 +29,10 @@ pub fn pos_as_string(pos: &Position) -> String {
     )
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct Board {
     pub squares: [Option<Piece>; 64],
+    pub piecemap: HashMap<u8, Piece>,
     pub side_to_move: PieceColor,
     pub castling_rights: u8,
     pub en_passant_square: Option<Position>,
@@ -50,6 +51,11 @@ impl Board {
         self.squares[square as usize]
     }
     pub fn set_piece(&mut self, square: u8, piece: Option<Piece>) {
+        if piece.is_none() {
+            self.piecemap.remove(&square);
+        } else {
+            self.piecemap.insert(square, piece.unwrap());
+        }
         self.squares[square as usize] = piece;
     }
     pub fn make_move(&mut self, m: Move) -> MoveContext {
@@ -94,14 +100,7 @@ impl Board {
 
         // println!("King position: {:?}", decode_pos(&k));
 
-        let valid_moves = all_possible_raw_moves(self); //even moves which lead to the mover's side getting a check are valid if the mover can capture the king, but this should never happen
-                                                        // print_destinations(&valid_moves);
-        for m in valid_moves {
-            if decode_move(&m).1 == k {
-                return true;
-            }
-        }
-        return false;
+        return find_in_raw_move_targets(self, k);
     }
     pub fn best_move(&mut self, depth: u8) -> (f32, Move) {
         let now = std::time::Instant::now();
@@ -111,12 +110,18 @@ impl Board {
         println!("nodes scanned: {}", nodes_scanned);
         (eval, mov.unwrap())
     }
-    fn minimax(&mut self, depth: u8, mut alpha: f32, mut beta: f32, nodes_scanned: &mut i32) -> (f32, Option<Move>) {
+    fn minimax(
+        &mut self,
+        depth: u8,
+        mut alpha: f32,
+        mut beta: f32,
+        nodes_scanned: &mut i32,
+    ) -> (f32, Option<Move>) {
         *nodes_scanned += 1;
         // println!("{}", nodes_scanned);
         let v_moves = all_possible_valid_moves(self);
         if depth == 0 || v_moves.len() == 0 {
-            // println!("evaluating board: {}",self);
+            //todo: memoize fen and score
             return (self.evaluate(), None);
         }
         // print_moves(&v_moves);
@@ -241,6 +246,7 @@ impl fmt::Display for Board {
 pub fn create_board(fen: &str) -> Board {
     let mut board = Board {
         squares: [None; 64],
+        piecemap: HashMap::new(),
         side_to_move: PieceColor::WHITE,
         castling_rights: 0b1111,
         en_passant_square: None,

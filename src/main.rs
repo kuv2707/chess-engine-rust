@@ -1,5 +1,5 @@
 use crate::engine::{
-    board::encode_pos, decode_move, move_as_string, moves::all_possible_valid_moves, Move, parse_move,
+    board::{encode_pos, pos_as_string}, decode_move, move_as_string, moves::{all_possible_valid_moves, find_in_raw_move_targets}, Move, parse_move,
 };
 
 mod engine;
@@ -8,32 +8,20 @@ fn dev() {
     //load env
     dotenv::dotenv().ok();
 
-    let fenstr = std::env::var("FEN")
+    let fenstr = std::env::var("FEjN")
         .unwrap_or_else(|_| "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR".to_string());
-    let mut board = engine::board::create_board(&fenstr);
-
-    let pmoves = all_possible_valid_moves(&mut board)
-        .iter()
-        .map(|m| decode_move(&m).1)
-        .collect::<Vec<_>>();
-    board.plot(pmoves);
-
-    let (score, best_move) = board.best_move(4);
-    println!(
-        "best move: {:?} and board score: {}",
-        move_as_string(&best_move),
-        score
-    );
-    println!("for board\n{}", board);
-
-    // println!("board score: {}",board.evaluate());
-    // board.plot(pawn_moves_raw(encode_pos(6, 3), &board));
+    let board = engine::board::create_board(&fenstr);
+    let pos=encode_pos(5, 1);
+    println!("pos:{}", pos_as_string(&pos));
+    println!("isthere:{}", find_in_raw_move_targets(&board,pos ));
 
 }
 
 fn main() {
+    // dev();
+    // return;
     let mut board = engine::board::create_board(
-        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w",
+        "rnb1kbnr/pppppp1p/4q3/3Q4/7p/6B1/PPPPPPPP/RNB1K1NR b",
     );
     println!("{}", board);
     //accept input
@@ -54,7 +42,7 @@ fn main() {
         board.make_move(mov);
         println!("{}", board);
         println!("Computer's turn");
-        let (score, best_move) = board.best_move(4);
+        let (score, best_move) = board.best_move(2);
         board.make_move(best_move);
         println!("{}",board);
     }

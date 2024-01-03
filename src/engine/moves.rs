@@ -1,8 +1,8 @@
 use super::{
-    board::{decode_pos, encode_pos, Board, Position},
+    board::{decode_pos, encode_pos, Board, Position, print_moves},
     encode_move,
     piece::{Piece, PieceType},
-    Move,
+    Move, decode_move,
 };
 
 //define macro to get nth bit as i8
@@ -253,20 +253,30 @@ pub fn all_possible_raw_moves(board: &Board) -> Vec<Move> {
     // filter moves which cause same side to get a check
     // return vector of Move's
     let mut raw_moves: Vec<Move> = Vec::new();
-    let mut count = 0;
-    for square in board.squares {
-        if let Some(piece) = square {
-            if piece.color == board.side_to_move {
-                let mut rm = get_raw_moves(&piece, &count, &board);
-                // println!("{:?} {:?}",piece.piece_type ,rm.iter().map(|m| decode_move(&m).1).map(|n| decode_pos(&n)).collect::<Vec<_>>());
-                raw_moves.append(&mut rm);
-            }
+    //sort it such that queen moves are first
+    for (loc, piece) in &board.piecemap {
+        if piece.color == board.side_to_move {
+            let mut rm = get_raw_moves(&piece, &loc, &board);
+            // println!("{:?} {:?}",piece.piece_type ,rm.iter().map(|m| decode_move(&m).1).map(|n| decode_pos(&n)).collect::<Vec<_>>());
+            raw_moves.append(&mut rm);
         }
-        count += 1;
     }
     raw_moves
 }
 
 pub fn all_possible_valid_moves(board: &mut Board) -> Vec<Move> {
     filter_out_check_moves(board, all_possible_raw_moves(board))
+}
+
+pub fn find_in_raw_move_targets(board: &Board, searchpos: Position) -> bool {
+    for (loc, piece) in &board.piecemap {
+        if piece.color == board.side_to_move {
+            let rm = get_raw_moves(&piece, &loc, &board);
+            // print_moves(&rm);
+            if rm.iter().find(|&m|  decode_move(m).1 == searchpos).is_some() {
+                return true;
+            }
+        }
+    }
+    return false;
 }
