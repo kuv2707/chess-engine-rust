@@ -1,5 +1,10 @@
+use std::clone;
+
 use crate::engine::{
-    board::{encode_pos, pos_as_string}, decode_move, move_as_string, moves::{all_possible_valid_moves, find_in_raw_move_targets}, Move, parse_move,
+    board::{encode_pos, pos_as_string},
+    move_as_string,
+    moves::find_in_raw_move_targets,
+    parse_move, parse_pos,
 };
 
 mod engine;
@@ -8,25 +13,29 @@ fn dev() {
     //load env
     dotenv::dotenv().ok();
 
-    let fenstr = std::env::var("FEjN")
+    let fenstr = std::env::var("FEN")
         .unwrap_or_else(|_| "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR".to_string());
     let board = engine::board::create_board(&fenstr);
-    let pos=encode_pos(5, 1);
-    println!("pos:{}", pos_as_string(&pos));
-    println!("isthere:{}", find_in_raw_move_targets(&board,pos ));
+    // let pos=encode_pos(5, 1);
+    // println!("pos:{}", pos_as_string(&pos));
 
+    let pos = parse_pos("e4");
+
+    println!(
+        "{}",
+        find_in_raw_move_targets(&board, &pos.unwrap(), &engine::piece::PieceColor::WHITE)
+    );
 }
 
 fn main() {
     // dev();
     // return;
-    let mut board = engine::board::create_board(
-        "rnb1kbnr/pppppp1p/4q3/3Q4/7p/6B1/PPPPPPPP/RNB1K1NR b",
-    );
+    let mut board = engine::board::create_board("r4bn1/ppppp1pp/3p4/3r1k1n/Q7/4PP2/PPPP3P/RNB1KBbR w");
     println!("{}", board);
     //accept input
     loop {
         let mut input = String::new();
+        println!("Current turn: {}",board.side_to_move);
         println!("Enter move: ");
         std::io::stdin().read_line(&mut input).unwrap();
         if input.trim() == "exit" {
@@ -38,14 +47,14 @@ fn main() {
             continue;
         }
         let mov = m_res.unwrap();
-        println!("move: {}",move_as_string(&mov));
+        println!("move: {}", move_as_string(&mov));
+        //todo: check if move is legal before making it
         board.make_move(mov);
         println!("{}", board);
         println!("Computer's turn");
-        let (score, best_move) = board.best_move(2);
+        let (score, best_move) = board.best_move(4);
         board.make_move(best_move);
-        println!("{}",board);
+        println!("made move: {}", move_as_string(&best_move));
+        println!("{}", board);
     }
-    
-
 }

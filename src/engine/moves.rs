@@ -1,8 +1,10 @@
+use crate::engine::board::pos_as_string;
+
 use super::{
-    board::{decode_pos, encode_pos, Board, Position, print_moves},
-    encode_move,
-    piece::{Piece, PieceType},
-    Move, decode_move,
+    board::{decode_pos, encode_pos, print_moves, Board, Position},
+    decode_move, encode_move,
+    piece::{Piece, PieceColor, PieceType},
+    Move,
 };
 
 //define macro to get nth bit as i8
@@ -268,15 +270,251 @@ pub fn all_possible_valid_moves(board: &mut Board) -> Vec<Move> {
     filter_out_check_moves(board, all_possible_raw_moves(board))
 }
 
-pub fn find_in_raw_move_targets(board: &Board, searchpos: Position) -> bool {
-    for (loc, piece) in &board.piecemap {
-        if piece.color == board.side_to_move {
-            let rm = get_raw_moves(&piece, &loc, &board);
-            // print_moves(&rm);
-            if rm.iter().find(|&m|  decode_move(m).1 == searchpos).is_some() {
+pub fn find_in_raw_move_targets(
+    board: &Board,
+    searchpos: &Position,
+    opponent_col: &PieceColor,
+) -> bool {
+    square_search(board, searchpos, opponent_col)
+        || diag_search(board, searchpos, opponent_col)
+        || knight_search(board, searchpos, opponent_col)
+        || pawn_search(board, searchpos, opponent_col)
+        || king_search(board, searchpos, opponent_col)
+}
+
+pub fn square_search(board: &Board, searchpos: &Position, opponent_col: &PieceColor) -> bool {
+    let (r, f) = decode_pos(searchpos);
+    let mut i = r + 1;
+    while i < 8 {
+        let p = board.get_piece(encode_pos(i as u8, f as u8));
+        if p.is_some() {
+            if p.unwrap().color == *opponent_col
+                && (p.unwrap().piece_type == PieceType::QUEEN
+                    || p.unwrap().piece_type == PieceType::ROOK)
+            {
+                return true;
+            } else {
+                break;
+            }
+        }
+        i += 1;
+    }
+    i = r - 1;
+    while i >= 0 {
+        let p = board.get_piece(encode_pos(i as u8, f as u8));
+        if p.is_some() {
+            if p.unwrap().color == *opponent_col
+                && (p.unwrap().piece_type == PieceType::QUEEN
+                    || p.unwrap().piece_type == PieceType::ROOK)
+            {
+                return true;
+            } else {
+                break;
+            }
+        }
+        i -= 1;
+    }
+    i = f + 1;
+    while i < 8 {
+        let p = board.get_piece(encode_pos(r as u8, i as u8));
+        if p.is_some() {
+            if p.unwrap().color == *opponent_col
+                && (p.unwrap().piece_type == PieceType::QUEEN
+                    || p.unwrap().piece_type == PieceType::ROOK)
+            {
+                return true;
+            } else {
+                break;
+            }
+        }
+        i += 1;
+    }
+    i = f - 1;
+    while i >= 0 {
+        let p = board.get_piece(encode_pos(r as u8, i as u8));
+        if p.is_some() {
+            if p.unwrap().color == *opponent_col
+                && (p.unwrap().piece_type == PieceType::QUEEN
+                    || p.unwrap().piece_type == PieceType::ROOK)
+            {
+                return true;
+            } else {
+                break;
+            }
+        }
+        i -= 1;
+    }
+
+    return false;
+}
+
+pub fn diag_search(board: &Board, searchpos: &Position, opponent_col: &PieceColor) -> bool {
+    let (r, f) = decode_pos(searchpos);
+    let mut i = r + 1;
+    let mut j = f + 1;
+    while i < 8 && j < 8 {
+        let p = board.get_piece(encode_pos(i as u8, j as u8));
+        if p.is_some() {
+            if p.unwrap().color == *opponent_col
+                && (p.unwrap().piece_type == PieceType::QUEEN
+                    || p.unwrap().piece_type == PieceType::BISHOP)
+            {
+                return true;
+            } else {
+                break;
+            }
+        }
+        i += 1;
+        j += 1;
+    }
+    i = r - 1;
+    j = f - 1;
+    while i >= 0 && j >= 0 {
+        let p = board.get_piece(encode_pos(i as u8, j as u8));
+        if p.is_some() {
+            if p.unwrap().color == *opponent_col
+                && (p.unwrap().piece_type == PieceType::QUEEN
+                    || p.unwrap().piece_type == PieceType::BISHOP)
+            {
+                return true;
+            } else {
+                break;
+            }
+        }
+        i -= 1;
+        j -= 1;
+    }
+    i = r + 1;
+    j = f - 1;
+    while i < 8 && j >= 0 {
+        let p = board.get_piece(encode_pos(i as u8, j as u8));
+        if p.is_some() {
+            if p.unwrap().color == *opponent_col
+                && (p.unwrap().piece_type == PieceType::QUEEN
+                    || p.unwrap().piece_type == PieceType::BISHOP)
+            {
+                return true;
+            } else {
+                break;
+            }
+        }
+        i += 1;
+        j -= 1;
+    }
+    i = r - 1;
+    j = f + 1;
+    while i >= 0 && j < 8 {
+        let p = board.get_piece(encode_pos(i as u8, j as u8));
+        if p.is_some() {
+            if p.unwrap().color == *opponent_col
+                && (p.unwrap().piece_type == PieceType::QUEEN
+                    || p.unwrap().piece_type == PieceType::BISHOP)
+            {
+                return true;
+            } else {
+                break;
+            }
+        }
+        i -= 1;
+        j += 1;
+    }
+    return false;
+}
+
+pub fn knight_search(board: &Board, searchpos: &Position, opponent_col: &PieceColor) -> bool {
+    let (r, f) = decode_pos(searchpos);
+    let coeffs = [
+        (1, 2),
+        (2, 1),
+        (2, -1),
+        (1, -2),
+        (-1, -2),
+        (-2, -1),
+        (-2, 1),
+        (-1, 2),
+    ];
+    let mut dir: usize = 0;
+    while dir <= 7 {
+        let coeff_1 = coeffs[dir].0;
+        let coeff_2 = coeffs[dir].1;
+        let newx: i16 = r as i16 + coeff_1;
+        let newy: i16 = f as i16 + coeff_2;
+        if in_bounds!(newx, newy) {
+            let m = encode_pos(newx as u8, newy as u8);
+            let p = board.get_piece(m);
+            if p.is_some()
+                && p.unwrap().color == *opponent_col
+                && p.unwrap().piece_type == PieceType::KNIGHT
+            {
                 return true;
             }
         }
+        dir += 1;
     }
+
+    return false;
+}
+
+pub fn king_search(board: &Board, searchpos: &Position, opponent_col: &PieceColor) -> bool {
+    let (r, f) = decode_pos(searchpos);
+    let coeffs = [
+        (1, 0),
+        (0, 1),
+        (-1, 0),
+        (0, -1),
+        (1, 1),
+        (-1, -1),
+        (-1, 1),
+        (1, -1),
+    ];
+    let mut dir: usize = 0;
+    while dir <= 7 {
+        let coeff_1 = coeffs[dir].0;
+        let coeff_2 = coeffs[dir].1;
+        let newx: i16 = r as i16 + coeff_1;
+        let newy: i16 = f as i16 + coeff_2;
+        if in_bounds!(newx, newy) {
+            let m = encode_pos(newx as u8, newy as u8);
+            let p = board.get_piece(m);
+            if p.is_some()
+                && p.unwrap().color == *opponent_col
+                && p.unwrap().piece_type == PieceType::KING
+            {
+                return true;
+            }
+        }
+        dir += 1;
+    }
+
+    return false;
+}
+
+pub fn pawn_search(board: &Board, searchpos: &Position, opponent_col: &PieceColor) -> bool {
+    let (r, f) = decode_pos(searchpos);
+    let coeff = match opponent_col {
+        super::piece::PieceColor::WHITE => 1,
+        super::piece::PieceColor::BLACK => -1,
+    };
+    let coeffs = [(1, 1), (1, -1)];
+    for cof in coeffs {
+        let coeff_1 = cof.0;
+        let coeff_2 = cof.1;
+        let newx: i16 = r as i16 + coeff_1 * coeff;
+        let newy: i16 = f as i16 + coeff_2;
+        if in_bounds!(newx, newy) {
+            let m = encode_pos(newx as u8, newy as u8);
+            let p = board.get_piece(m);
+            if p.is_some()
+                && p.unwrap().color == *opponent_col
+                && p.unwrap().piece_type == PieceType::PAWN
+            {
+                let p = board.get_piece(m);
+                if p.is_some() && p.unwrap().piece_type == PieceType::PAWN {
+                    return true;
+                }
+            }
+        }
+    }
+
     return false;
 }

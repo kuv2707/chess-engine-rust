@@ -100,7 +100,7 @@ impl Board {
 
         // println!("King position: {:?}", decode_pos(&k));
 
-        return find_in_raw_move_targets(self, k);
+        return find_in_raw_move_targets(self, &k,&col.opponent_color());
     }
     pub fn best_move(&mut self, depth: u8) -> (f32, Move) {
         let now = std::time::Instant::now();
