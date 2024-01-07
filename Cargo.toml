@@ -7,3 +7,6 @@ edition = "2021"
 
 [dependencies]
 dotenv = "0.15.0"
+actix-rt = "2.9.0"
+actix-web = "4.4.1"
+serde = {version = "1.0.130", features = ["derive"]}
